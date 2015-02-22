@@ -1,0 +1,97 @@
+---
+title: "Prediction Assignment"
+output: html_document
+---
+##Background
+
+Using devices such as Jawbone Up, Nike FuelBand, and Fitbit it is now possible to collect a large amount of data about personal activity relatively inexpensively. These type of devices are part of the quantified self movement - a group of enthusiasts who take measurements about themselves regularly to improve their health, to find patterns in their behavior, or because they are tech geeks. One thing that people regularly do is quantify how much of a particular activity they do, but they rarely quantify how well they do it. 
+This project will use data from accelerometers on the belt, forearm, arm, and dumbell of six participants.
+
+##Project Aim
+
+The main aim of this project is to predict the manner in which the six participants did the exercise.
+
+##Data
+The training data for this project are available here: 
+
+https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv
+
+The test data are available here: 
+
+https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv
+
+##Data Loading
+
+The data is loaded using the r- code below:
+
+```{r}
+library(caret)
+training <- read.csv("pml-training.csv")
+testing <- read.csv("pml-testing.csv")
+
+```
+
+##Data Pre-processing
+
+The data contains noise (NA), that needs to be cleaned first before any anylisis can be done.
+
+```{r}
+Newtraining <- training
+Newtraining[ Newtraining == ''| Newtraining == 'NA']<- NA
+indx <- which(colSums(is.na(Newtraining))!=0)
+Newtraining <- Newtraining[, -indx]
+Newtraining <- Newtraining[, -(1:7)]
+```
+## Model Validation
+
+Now, a valid data set is created, which will be used for Cross validating with the training set. 
+```{r}
+InTraining <- createDataPartition(y = Newtraining$classe, p = 0.70, list = FALSE)
+Newtraining <- Newtraining[InTraining,]
+ValidateSet <- Newtraining[-InTraining,]
+
+```
+
+##Model Prediction
+
+The model was predicted using random Forest on the training set.
+```{r}
+ModelFit <- train(classe~., data = Newtraining, method = "rf", tuneLength = 1, ntree = 25)
+print(ModelFit)
+```
+
+##Model Evaluation
+
+The prediction model is evaluated using the confusionMatrixagainst the validate set.
+```{r}
+confusionMatrix(predict(ModelFit, ValidateSet), ValidateSet$classe)
+```
+##Predictions and Results using the testing Set
+
+First, the number of rows annd columns of the testing set is calculated. Then the prediction is done using the code below:
+
+```{r}
+nrow(testing)
+ncol(testing)
+Modeltest <- predict(ModelFit, testing)
+print(Modeltest)
+```
+
+The predicted results are printed above.
+
+## Submission to Coursera
+
+The Results are submitted to coursera using the code below:
+```{r}
+pml_write_files = function(x){
+   n =length(x)
+   for(i in 1:n){
+     filename = paste0("./answers/problem_id_",i, ".txt")
+      write.table(x[i], file = filename, quote = FALSE, row.names = FALSE, col.names = FALSE )}}
+
+pml_write_files(Modeltest)
+```
+
+
+
+
